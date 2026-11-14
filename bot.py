@@ -59,8 +59,8 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
     
     if video.duration < duration:
         video = video.loop(duration=duration)
-    video = video.subclip(0, duration).resize(height=1920)
-    video = video.crop(x_center=video.w/2, width=1080, height=1920)
+    video = video.subclip(0, duration).resize(height=1280)
+    video = video.crop(x_center=video.w/2, width=720, height=1280)
     video = video.set_audio(audio)
     
     video.write_videofile(
@@ -68,21 +68,18 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
         fps=24, 
         codec="libx264", 
         audio_codec="aac", 
-        audio_fps=44100,
-        preset="medium",
+        bitrate="1500k",
         ffmpeg_params=["-movflags", "+faststart"]
     )
 
-import subprocess
-
 def upload_temp_host(file_path="final_reel.mp4"):
     url = "https://0x0.st"
-    print("Uploading to 0x0.st...")
     with open(file_path, "rb") as f:
         response = requests.post(url, files={"file": f}, timeout=120)
     direct_url = response.text.strip()
     print("Hosted Video URL:", direct_url)
     return direct_url
+
 
 
 def post_to_instagram(video_url, caption):

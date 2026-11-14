@@ -73,24 +73,20 @@ def upload_temp_host(file_path="final_reel.mp4"):
 
 def post_to_instagram(video_url, caption):
     base = f"https://graph.facebook.com/v21.0/{IG_USER_ID}"
-    res = requests.post(f"{base}/media", data={
+    container = requests.post(f"{base}/media", data={
         "media_type": "REELS",
         "video_url": video_url,
         "caption": caption,
         "access_token": IG_TOKEN
-    })
-    container = res.json()
-    print("Instagram API Response:", container)
-    
-    if "id" not in container:
-        raise Exception(f"Instagram API Error: {container}")
-        
+    }).json()
+    print("Container Response:", container)
     creation_id = container["id"]
     
     for _ in range(15):
         status = requests.get(f"https://graph.facebook.com/v21.0/{creation_id}", params={
             "fields": "status_code", "access_token": IG_TOKEN
         }).json()
+        print("Status Check:", status)
         if status.get("status_code") == "FINISHED":
             break
         time.sleep(10)
@@ -98,7 +94,13 @@ def post_to_instagram(video_url, caption):
     pub = requests.post(f"{base}/media_publish", data={
         "creation_id": creation_id, "access_token": IG_TOKEN
     }).json()
+    print("Publish Response:", pub)
+    
+    if "id" not in pub:
+        raise Exception(f"Publish Error: {pub}")
+        
     return pub["id"]
+
 
 
 def track_analytics(new_media_id, topic):

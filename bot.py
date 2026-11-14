@@ -17,7 +17,8 @@ LOG_FILE = "analytics_log.json"
 
 def generate_script():
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    # Using gemini-pro for universal compatibility
+    model = genai.GenerativeModel("gemini-pro")
     prompt = f"""
     Write a punchy 25-second Instagram Reel script highlighting {NICHE}. 
     Focus on aesthetic unboxing, jewelry organization, display styling, or professional studio tools.
@@ -120,4 +121,3 @@ if __name__ == "__main__":
     media_id = post_to_instagram(public_url, data["caption"])
     print(f"6. Published! Media ID: {media_id}. Updating analytics...")
     track_analytics(media_id, data["search_keyword"])
-    

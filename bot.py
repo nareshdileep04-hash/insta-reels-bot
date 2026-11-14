@@ -2,36 +2,38 @@ import os
 import json
 import time
 import asyncio
+import random
 import requests
 import edge_tts
-import google.generativeai as genai
 from moviepy.editor import VideoFileClip, AudioFileClip
 
-GEMINI_KEY = os.environ["GEMINI_API_KEY"]
 PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 IG_TOKEN = os.environ["IG_ACCESS_TOKEN"]
 IG_USER_ID = os.environ["IG_USER_ID"]
-
-NICHE = "luxury jewelry boxes, elegant display trays, premium pouches, velvet purses, and professional jewelry making tools like melting furnaces and wire cutters"
 LOG_FILE = "analytics_log.json"
 
+# Pre-written viral scripts tailored for your jewelry boxes, displays, and tools
+JEWELRY_SCRIPTS = [
+    {
+        "search_keyword": "velvet jewelry box",
+        "voiceover": "Stop storing your precious gold and diamond jewelry in random plastic bags. Elevate your collection with our premium velvet jewelry boxes designed to prevent scratches, tangles, and tarnish. Give your jewelry the luxury home it truly deserves today.",
+        "caption": "Protect your precious collection in style! ✨ Luxury velvet jewelry boxes now available. DM to order! #JewelryBox #JewelryStorage #LuxuryPackaging #JewelryDisplay #GoldJewelry"
+    },
+    {
+        "search_keyword": "jewelry display tray",
+        "voiceover": "Running a jewelry store or setting up an exhibition? Showcase your rings, earrings, and necklaces like a high-end boutique using our sleek display trays. Elegant organization that instantly catches your customers eyes.",
+        "caption": "Elegance meets perfection in every display. 💎 Shop professional display trays for your store or studio. #JewelryDisplay #StoreDesign #JewelryShowcase #DisplayTrays #JewelryTools"
+    },
+    {
+        "search_keyword": "goldsmith melting furnace",
+        "voiceover": "Take your jewelry crafting to the next level with our professional-grade melting furnaces and precision cutting tools. Safe, efficient, and built for serious goldsmiths and modern artisans.",
+        "caption": "Built for precision and performance. 🔥 Explore professional jewelry making tools and melting furnaces with us! #GoldsmithTools #MeltingFurnace #JewelryMaking #Craftsman #JewelryStudio"
+    }
+]
+
 def generate_script():
-    genai.configure(api_key=GEMINI_KEY)
-    # Using gemini-pro for universal compatibility
-    model = genai.GenerativeModel("gemini-pro")
-    prompt = f"""
-    Write a punchy 25-second Instagram Reel script highlighting {NICHE}. 
-    Focus on aesthetic unboxing, jewelry organization, display styling, or professional studio tools.
-    Return ONLY valid JSON with no markdown formatting:
-    {{
-        "search_keyword": "jewelry",
-        "voiceover": "Spoken script around 55 words, strong hook in first 3 seconds",
-        "caption": "Engaging Instagram caption with 5 relevant hashtags"
-    }}
-    """
-    response = model.generate_content(prompt)
-    clean_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
-    return json.loads(clean_json)
+    # Randomly select a high-performing script for your jewelry business
+    return random.choice(JEWELRY_SCRIPTS)
 
 async def make_voiceover(text, output_audio="voice.mp3"):
     communicate = edge_tts.Communicate(text, "en-IN-PrabhatNeural", rate="+5%")
@@ -108,7 +110,7 @@ def track_analytics(new_media_id, topic):
         json.dump(logs, f, indent=2)
 
 if __name__ == "__main__":
-    print("1. Generating script...")
+    print("1. Selecting script...")
     data = generate_script()
     print("2. Creating voiceover...")
     asyncio.run(make_voiceover(data["voiceover"]))

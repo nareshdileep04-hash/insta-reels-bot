@@ -73,17 +73,21 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
     )
 
 def upload_temp_host(file_path="final_reel.mp4"):
-    print("Uploading to Catbox...")
+    print("Uploading to Telegraph...")
     with open(file_path, "rb") as f:
+        # Telegraph accepts direct file uploads up to 5MB via their upload endpoint
         response = requests.post(
-            "https://catbox.moe/user/api.php",
-            data={"reqtype": "fileupload"},
-            files={"fileToUpload": f},
+            "https://telegra.ph/upload",
+            files={"file": ("reel.mp4", f, "video/mp4")},
             timeout=180
         )
-    direct_url = response.text.strip()
-    print("Hosted Video URL:", direct_url)
-    return direct_url
+    res_json = response.json()
+    if isinstance(res_json, list) and len(res_json) > 0 and "src" in res_json[0]:
+        direct_url = "https://telegra.ph" + res_json[0]["src"]
+        print("Hosted Video URL:", direct_url)
+        return direct_url
+    else:
+        raise Exception(f"Telegraph Upload Failed: {res_json}")
 
 
 

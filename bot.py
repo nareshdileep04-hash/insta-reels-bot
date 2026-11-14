@@ -1,84 +1,68 @@
 import os
-import json
+import glob
+import subprocess
 import time
-import asyncio
-import random
 import requests
-import edge_tts
-from moviepy.editor import VideoFileClip, AudioFileClip
+import google.generativeai as genai
+from moviepy.editor import ImageClip, AudioFileClip
 
-PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
-IG_TOKEN = os.environ["IG_ACCESS_TOKEN"]
-IG_USER_ID = os.environ["IG_USER_ID"]
-LOG_FILE = "analytics_log.json"
+# Configure Gemini API
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# Pre-written viral scripts tailored for your jewelry boxes, displays, and tools
-JEWELRY_SCRIPTS = [
-    {
-        "search_keyword": "velvet jewelry box",
-        "voiceover": "Stop storing your precious gold and diamond jewelry in random plastic bags. Elevate your collection with our premium velvet jewelry boxes designed to prevent scratches, tangles, and tarnish. Give your jewelry the luxury home it truly deserves today.",
-        "caption": "Protect your precious collection in style! ✨ Luxury velvet jewelry boxes now available. DM to order! #JewelryBox #JewelryStorage #LuxuryPackaging #JewelryDisplay #GoldJewelry"
-    },
-    {
-        "search_keyword": "jewelry display tray",
-        "voiceover": "Running a jewelry store or setting up an exhibition? Showcase your rings, earrings, and necklaces like a high-end boutique using our sleek display trays. Elegant organization that instantly catches your customers eyes.",
-        "caption": "Elegance meets perfection in every display. 💎 Shop professional display trays for your store or studio. #JewelryDisplay #StoreDesign #JewelryShowcase #DisplayTrays #JewelryTools"
-    },
-    {
-        "search_keyword": "goldsmith melting furnace",
-        "voiceover": "Take your jewelry crafting to the next level with our professional-grade melting furnaces and precision cutting tools. Safe, efficient, and built for serious goldsmiths and modern artisans.",
-        "caption": "Built for precision and performance. 🔥 Explore professional jewelry making tools and melting furnaces with us! #GoldsmithTools #MeltingFurnace #JewelryMaking #Craftsman #JewelryStudio"
-    }
-]
+def generate_ai_caption(product_name="jewelry item"):
+    print("Generating unique caption with Gemini...")
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"Write a short, trendy, highly engaging Instagram Reel caption with emojis and relevant hashtags for a stunning new {product_name}. Make it punchy and viral-style."
+        response = model.generate_content(prompt)
+        caption = response.text.strip()
+        print("Generated Caption:", caption)
+        return caption
+    except Exception as e:
+        print(f"Gemini caption generation failed ({e}), using default caption.")
+        return "Check out this stunning new arrival! ✨ #Reels #Trending #JewelryGoals"
 
-def generate_script():
-    # Randomly select a high-performing script for your jewelry business
-    return random.choice(JEWELRY_SCRIPTS)
-
-async def make_voiceover(text, output_audio="voice.mp3"):
-    communicate = edge_tts.Communicate(text, "en-IN-PrabhatNeural", rate="+5%")
-    await communicate.save(output_audio)
-
-def download_stock_video(keyword, output_video="bg.mp4"):
-    query = requests.utils.quote(keyword)
-    url = f"https://pixabay.com/api/videos/?key={PIXABAY_KEY}&q={query}&per_page=5"
-    res = requests.get(url).json()
+def assemble_reel(final_path="final_reel.mp4"):
+    print("Searching for product images in products/ folder...")
+    image_files = glob.glob("products/*.jpg") + glob.glob("products/*.png") + glob.glob("products/*.jpeg")
     
-    if not res.get("hits"):
-        res = requests.get(f"https://pixabay.com/api/videos/?key={PIXABAY_KEY}&q=jewelry&per_page=5").json()
+    if not image_files:
+        raise Exception("No product images found in the 'products/' folder! Please upload at least one image.")
+    
+    # Sort files by upload time to pick the most recent one automatically
+    image_files.sort(key=os.path.getmtime, reverse=True)
+    product_image = image_files[0]
+    print(f"Using the latest product image: {product_image}")
+    
+    audio_path = "voice.mp3"
+    if os.path.exists(audio_path):
+        audio = AudioFileClip(audio_path)
+        duration = audio.duration + 0.5
+    else:
+        duration = 7.0
+        audio = None
+
+    # Format into a 9:16 vertical Reel (720x1280)
+    clip = ImageClip(product_image).set_duration(duration)
+    clip = clip.resize(height=1280)
+    clip = clip.crop(x_center=clip.w/2, width=720, height=1280)
+    
+    if audio:
+        clip = clip.set_audio(audio)
         
-    videos = res["hits"][0]["videos"]
-    video_url = videos.get("large", videos.get("medium"))["url"]
-    with open(output_video, "wb") as f:
-        f.write(requests.get(video_url).content)
-
-def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_reel.mp4"):
-    audio = AudioFileClip(voice_path)
-    duration = audio.duration + 0.5
-    video = VideoFileClip(bg_path).without_audio()
-    
-    if video.duration < duration:
-        video = video.loop(duration=duration)
-    video = video.subclip(0, duration).resize(height=1280)
-    video = video.crop(x_center=video.w/2, width=720, height=1280)
-    video = video.set_audio(audio)
-    
-    video.write_videofile(
-        final_path, 
-        fps=24, 
-        codec="libx264", 
-        audio_codec="aac", 
+    clip.write_videofile(
+        final_path,
+        fps=24,
+        codec="libx264",
+        audio_codec="aac",
         bitrate="1500k",
         ffmpeg_params=["-movflags", "+faststart"]
     )
-
-import subprocess
-import time
-import os
+    print("Moviepy - video ready:", final_path)
 
 def upload_temp_host(file_path="final_reel.mp4"):
     print("Committing and pushing video to GitHub for Pages hosting...")
-    repo = os.environ.get("GITHUB_REPOSITORY")  # e.g. "username/repo-name"
+    repo = os.environ.get("GITHUB_REPOSITORY")
     branch = os.environ.get("GITHUB_REF_NAME", "main")
     token = os.environ.get("GITHUB_TOKEN")
     
@@ -90,7 +74,7 @@ def upload_temp_host(file_path="final_reel.mp4"):
     subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
     
     subprocess.run(["git", "add", file_path], check=True)
-    subprocess.run(["git", "commit", "-m", "Auto-commit reel for GitHub Pages hosting"], check=True)
+    subprocess.run(["git", "commit", "-m", "Auto-commit dynamic product reel for Pages"], check=True)
     
     remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
     subprocess.run(["git", "push", remote_url, branch], check=True)
@@ -103,77 +87,43 @@ def upload_temp_host(file_path="final_reel.mp4"):
     
     return pages_url
 
-
-
-
-def post_to_instagram(video_url, caption):
-    base = f"https://graph.facebook.com/v21.0/{IG_USER_ID}"
-    container = requests.post(f"{base}/media", data={
+def post_to_instagram(public_url):
+    ig_user_id = os.environ.get("IG_USER_ID")
+    access_token = os.environ.get("IG_ACCESS_TOKEN")
+    
+    # Dynamically generate unique caption via Gemini
+    caption = generate_ai_caption()
+    
+    print("1. Creating container...")
+    container_url = f"https://graph.facebook.com/v18.0/{ig_user_id}/media"
+    payload = {
         "media_type": "REELS",
-        "video_url": video_url,
+        "video_url": public_url,
         "caption": caption,
-        "access_token": IG_TOKEN
-    }).json()
-    print("Container Response:", container)
-    creation_id = container["id"]
+        "access_token": access_token
+    }
+    r = requests.post(container_url, data=payload)
+    res = r.json()
+    if "id" not in res:
+        raise Exception(f"Container Creation Failed: {res}")
     
-    is_finished = False
-    for _ in range(20):
-        status = requests.get(f"https://graph.facebook.com/v21.0/{creation_id}", params={
-            "fields": "status_code,status", "access_token": IG_TOKEN
-        }).json()
-        print("Status Check:", status)
-        
-        code = status.get("status_code")
-        if code == "FINISHED":
-            is_finished = True
-            break
-        elif code == "ERROR":
-            raise Exception(f"Video Processing Error from Meta: {status}")
-            
-        time.sleep(15)
-        
-    if not is_finished:
-        raise Exception("Video processing timed out on Instagram servers.")
-        
-    pub = requests.post(f"{base}/media_publish", data={
-        "creation_id": creation_id, "access_token": IG_TOKEN
-    }).json()
-    print("Publish Response:", pub)
+    creation_id = res["id"]
+    print("Container ID:", creation_id)
     
-    if "id" not in pub:
-        raise Exception(f"Publish Error: {pub}")
-        
-    return pub["id"]
-
-
-
-def track_analytics(new_media_id, topic):
-    logs = json.load(open(LOG_FILE)) if os.path.exists(LOG_FILE) else []
-    for item in logs:
-        mid = item["media_id"]
-        stats = requests.get(f"https://graph.facebook.com/v21.0/{mid}/insights", params={
-            "metric": "plays,reach,likes,comments,shares",
-            "access_token": IG_TOKEN
-        }).json()
-        if "data" in stats:
-            item["metrics"] = {m["name"]: m["values"][0]["value"] for m in stats["data"]}
-            
-    logs.append({"media_id": new_media_id, "topic": topic, "timestamp": time.ctime(), "metrics": {}})
-    with open(LOG_FILE, "w") as f:
-        json.dump(logs, f, indent=2)
+    print("2. Publishing to Instagram...")
+    publish_url = f"https://graph.facebook.com/v18.0/{ig_user_id}/media_publish"
+    pub_payload = {
+        "creation_id": creation_id,
+        "access_token": access_token
+    }
+    pub_res = requests.post(publish_url, data=pub_payload).json()
+    if "id" not in pub_res:
+        raise Exception(f"Publish Failed: {pub_res}")
+    
+    print("Successfully posted! Media ID:", pub_res["id"])
 
 if __name__ == "__main__":
-    print("1. Selecting script...")
-    data = generate_script()
-    print("2. Creating voiceover...")
-    asyncio.run(make_voiceover(data["voiceover"]))
-    print("3. Downloading stock footage from Pixabay...")
-    download_stock_video(data["search_keyword"])
-    print("4. Rendering 1080x1920 Reel...")
     assemble_reel()
-    print("5. Uploading & Publishing to Instagram...")
-    public_url = upload_temp_host()
-    media_id = post_to_instagram(public_url, data["caption"])
-    print(f"6. Published! Media ID: {media_id}. Updating analytics...")
-    track_analytics(media_id, data["search_keyword"])
+    video_url = upload_temp_host()
+    post_to_instagram(video_url)
+    

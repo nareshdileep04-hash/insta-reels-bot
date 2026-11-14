@@ -72,23 +72,36 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
         ffmpeg_params=["-movflags", "+faststart"]
     )
 
-import requests
-
 import subprocess
+import time
+import os
 
 def upload_temp_host(file_path="final_reel.mp4"):
-    print("Uploading to bashupload...")
-    result = subprocess.run(
-        ["curl", "-s", "-T", file_path, f"https://bashupload.com/{file_path}"],
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    # Extract the download URL from bashupload response
-    lines = [line.strip() for line in result.stdout.split('\n') if "https://" in line]
-    direct_url = lines[0] if lines else result.stdout.strip().split()[-1]
-    print("Hosted Video URL:", direct_url)
-    return direct_url
+    print("Committing and pushing video to GitHub for Pages hosting...")
+    repo = os.environ.get("GITHUB_REPOSITORY")  # e.g. "username/repo-name"
+    branch = os.environ.get("GITHUB_REF_NAME", "main")
+    token = os.environ.get("GITHUB_TOKEN")
+    
+    parts = repo.split("/")
+    username = parts[0]
+    repo_name = parts[1]
+    
+    subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+    
+    subprocess.run(["git", "add", file_path], check=True)
+    subprocess.run(["git", "commit", "-m", "Auto-commit reel for GitHub Pages hosting"], check=True)
+    
+    remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
+    subprocess.run(["git", "push", remote_url, branch], check=True)
+    
+    pages_url = f"https://{username}.github.io/{repo_name}/{file_path}"
+    print("GitHub Pages Video URL:", pages_url)
+    
+    print("Waiting 10 seconds for GitHub Pages CDN sync...")
+    time.sleep(10)
+    
+    return pages_url
 
 
 

@@ -22,12 +22,11 @@ def generate_script():
     Focus on aesthetic unboxing, jewelry organization, display styling, or professional studio tools.
     Return ONLY valid JSON with no markdown formatting:
     {{
-        "search_keyword": "1-word or 2-word stock video keyword like jewelry, diamond, velvet, goldsmith, crafting",
+        "search_keyword": "jewelry",
         "voiceover": "Spoken script around 55 words, strong hook in first 3 seconds",
         "caption": "Engaging Instagram caption with 5 relevant hashtags"
     }}
     """
-    # Using the stable 1.5-flash model
     response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
     clean_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
     return json.loads(clean_json)

@@ -74,23 +74,21 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
 
 import requests
 
+import subprocess
+
 def upload_temp_host(file_path="final_reel.mp4"):
-    print("Uploading to Pixeldrain...")
-    with open(file_path, "rb") as f:
-        response = requests.post(
-            "https://pixeldrain.com/api/file/", 
-            files={"file": f}, 
-            timeout=180
-        )
-    
-    res_json = response.json()
-    if res_json.get("success"):
-        file_id = res_json.get("id")
-        direct_url = f"https://pixeldrain.com/api/file/{file_id}"
-        print("Hosted Video URL:", direct_url)
-        return direct_url
-    else:
-        raise Exception(f"Pixeldrain upload failed: {res_json}")
+    print("Uploading to bashupload...")
+    result = subprocess.run(
+        ["curl", "-s", "-T", file_path, f"https://bashupload.com/{file_path}"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    # Extract the download URL from bashupload response
+    lines = [line.strip() for line in result.stdout.split('\n') if "https://" in line]
+    direct_url = lines[0] if lines else result.stdout.strip().split()[-1]
+    print("Hosted Video URL:", direct_url)
+    return direct_url
 
 
 

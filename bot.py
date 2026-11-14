@@ -26,7 +26,8 @@ def generate_script():
         "caption": "Engaging Instagram caption with 5 relevant hashtags"
     }}
     """
-    response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+    # Updated to gemini-1.5-flash
+    response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
     clean_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
     return json.loads(clean_json)
 
@@ -115,5 +116,6 @@ if __name__ == "__main__":
     assemble_reel()
     print("5. Uploading & Publishing to Instagram...")
     public_url = upload_temp_host()
-    media_id = post_to
-  
+    media_id = post_to_instagram(public_url, data["caption"])
+    print(f"6. Published! Media ID: {media_id}. Updating analytics...")
+    track_analytics(media_id, data["search_keyword"])

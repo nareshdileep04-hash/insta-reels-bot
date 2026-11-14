@@ -74,10 +74,17 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
     )
 
 def upload_temp_host(file_path="final_reel.mp4"):
+    url = "https://catbox.moe/user/api.php"
     with open(file_path, "rb") as f:
-        res = requests.post("https://tmpfiles.org/api/v1/upload", files={"file": f}).json()
-    raw_url = res["data"]["url"]
-    return raw_url.replace("tmpfiles.org/", "tmpfiles.org/dl/")
+        response = requests.post(
+            url,
+            data={"reqtype": "fileupload"},
+            files={"fileToUpload": f}
+        )
+    direct_url = response.text.strip()
+    print("Hosted Video URL:", direct_url)
+    return direct_url
+
 
 def post_to_instagram(video_url, caption):
     base = f"https://graph.facebook.com/v21.0/{IG_USER_ID}"

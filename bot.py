@@ -74,9 +74,9 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
     )
 
 def upload_temp_host(file_path="final_reel.mp4"):
-    url = "https://0x0.st"
+    url = f"https://transfer.sh/{file_path}"
     with open(file_path, "rb") as f:
-        response = requests.post(url, files={"file": f})
+        response = requests.put(url, data=f, timeout=60)
     direct_url = response.text.strip()
     print("Hosted Video URL:", direct_url)
     return direct_url

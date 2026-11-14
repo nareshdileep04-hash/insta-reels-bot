@@ -72,24 +72,25 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
         ffmpeg_params=["-movflags", "+faststart"]
     )
 
-import subprocess
-import json
+import requests
 
 def upload_temp_host(file_path="final_reel.mp4"):
-    print("Uploading to file.io via curl...")
-    result = subprocess.run(
-        ["curl", "-s", "-F", f"file=@{file_path}", "https://file.io"],
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    res_json = json.loads(result.stdout)
+    print("Uploading to Pixeldrain...")
+    with open(file_path, "rb") as f:
+        response = requests.post(
+            "https://pixeldrain.com/api/file/", 
+            files={"file": f}, 
+            timeout=180
+        )
+    
+    res_json = response.json()
     if res_json.get("success"):
-        direct_url = res_json.get("link")
+        file_id = res_json.get("id")
+        direct_url = f"https://pixeldrain.com/api/file/{file_id}"
         print("Hosted Video URL:", direct_url)
         return direct_url
     else:
-        raise Exception(f"File.io upload failed: {res_json}")
+        raise Exception(f"Pixeldrain upload failed: {res_json}")
 
 
 

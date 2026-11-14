@@ -90,14 +90,24 @@ def post_to_instagram(video_url, caption):
     print("Container Response:", container)
     creation_id = container["id"]
     
-    for _ in range(15):
+    is_finished = False
+    for _ in range(20):
         status = requests.get(f"https://graph.facebook.com/v21.0/{creation_id}", params={
-            "fields": "status_code", "access_token": IG_TOKEN
+            "fields": "status_code,status", "access_token": IG_TOKEN
         }).json()
         print("Status Check:", status)
-        if status.get("status_code") == "FINISHED":
+        
+        code = status.get("status_code")
+        if code == "FINISHED":
+            is_finished = True
             break
-        time.sleep(10)
+        elif code == "ERROR":
+            raise Exception(f"Video Processing Error from Meta: {status}")
+            
+        time.sleep(15)
+        
+    if not is_finished:
+        raise Exception("Video processing timed out on Instagram servers.")
         
     pub = requests.post(f"{base}/media_publish", data={
         "creation_id": creation_id, "access_token": IG_TOKEN

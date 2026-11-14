@@ -12,16 +12,17 @@ PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 IG_TOKEN = os.environ["IG_ACCESS_TOKEN"]
 IG_USER_ID = os.environ["IG_USER_ID"]
 
-NICHE = "industrial cleaning hacks, chemical safety tips, and smart hardware tools"
+NICHE = "luxury jewelry boxes, elegant display trays, premium pouches, velvet purses, and professional jewelry making tools like melting furnaces and wire cutters"
 LOG_FILE = "analytics_log.json"
 
 def generate_script():
     client = genai.Client(api_key=GEMINI_KEY)
     prompt = f"""
-    Write a punchy 25-second Instagram Reel script about {NICHE}.
+    Write a punchy 25-second Instagram Reel script highlighting {NICHE}. 
+    Focus on aesthetic unboxing, jewelry organization, display styling, or professional studio tools.
     Return ONLY valid JSON with no markdown formatting:
     {{
-        "search_keyword": "1-word or 2-word stock video keyword like laboratory, tools, cleaning, workshop",
+        "search_keyword": "1-word or 2-word stock video keyword like jewelry, diamond, velvet, goldsmith, crafting",
         "voiceover": "Spoken script around 55 words, strong hook in first 3 seconds",
         "caption": "Engaging Instagram caption with 5 relevant hashtags"
     }}
@@ -40,7 +41,7 @@ def download_stock_video(keyword, output_video="bg.mp4"):
     res = requests.get(url).json()
     
     if not res.get("hits"):
-        res = requests.get(f"https://pixabay.com/api/videos/?key={PIXABAY_KEY}&q=tools&per_page=5").json()
+        res = requests.get(f"https://pixabay.com/api/videos/?key={PIXABAY_KEY}&q=jewelry&per_page=5").json()
         
     videos = res["hits"][0]["videos"]
     video_url = videos.get("large", videos.get("medium"))["url"]
@@ -118,3 +119,4 @@ if __name__ == "__main__":
     media_id = post_to_instagram(public_url, data["caption"])
     print(f"6. Published! Media ID: {media_id}. Updating analytics...")
     track_analytics(media_id, data["search_keyword"])
+    

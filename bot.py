@@ -63,7 +63,15 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
     video = video.crop(x_center=video.w/2, width=1080, height=1920)
     video = video.set_audio(audio)
     
-    video.write_videofile(final_path, fps=24, codec="libx264", audio_codec="aac")
+    video.write_videofile(
+        final_path, 
+        fps=24, 
+        codec="libx264", 
+        audio_codec="aac", 
+        audio_fps=44100,
+        preset="medium",
+        ffmpeg_params=["-movflags", "+faststart"]
+    )
 
 def upload_temp_host(file_path="final_reel.mp4"):
     with open(file_path, "rb") as f:

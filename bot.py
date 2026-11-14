@@ -73,13 +73,27 @@ def assemble_reel(voice_path="voice.mp3", bg_path="bg.mp4", final_path="final_re
         ffmpeg_params=["-movflags", "+faststart"]
     )
 
+import subprocess
+
 def upload_temp_host(file_path="final_reel.mp4"):
-    url = f"https://transfer.sh/{file_path}"
-    with open(file_path, "rb") as f:
-        response = requests.put(url, data=f, timeout=60)
-    direct_url = response.text.strip()
-    print("Hosted Video URL:", direct_url)
-    return direct_url
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    branch = os.environ.get("GITHUB_REF_NAME", "main")
+    token = os.environ.get("GITHUB_TOKEN")
+    
+    # Configure Git runner credentials
+    subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+    
+    # Stage, commit, and push the video file back to the repo
+    subprocess.run(["git", "add", file_path], check=True)
+    subprocess.run(["git", "commit", "-m", "Auto-commit rendered reel for IG upload"], check=True)
+    
+    remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
+    subprocess.run(["git", "push", remote_url, branch], check=True)
+    
+    raw_url = f"https://raw.githubusercontent.com/{repo}/{branch}/{file_path}"
+    print("GitHub Raw Video URL:", raw_url)
+    return raw_url
 
 
 def post_to_instagram(video_url, caption):

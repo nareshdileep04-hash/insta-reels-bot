@@ -26,8 +26,7 @@ def generate_script():
         "caption": "Engaging Instagram caption with 5 relevant hashtags"
     }}
     """
-    # Updated to gemini-1.5-flash
-    response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
     clean_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
     return json.loads(clean_json)
 

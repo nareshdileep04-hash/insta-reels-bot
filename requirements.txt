@@ -1,5 +1,6 @@
-google-genai
+google-generativeai==0.8.3
 edge-tts
 moviepy==1.0.3
 requests
 Pillow==9.5.0
+

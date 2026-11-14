@@ -4,7 +4,7 @@ import time
 import asyncio
 import requests
 import edge_tts
-from google import genai
+import google.generativeai as genai
 from moviepy.editor import VideoFileClip, AudioFileClip
 
 GEMINI_KEY = os.environ["GEMINI_API_KEY"]
@@ -16,7 +16,8 @@ NICHE = "luxury jewelry boxes, elegant display trays, premium pouches, velvet pu
 LOG_FILE = "analytics_log.json"
 
 def generate_script():
-    client = genai.Client(api_key=GEMINI_KEY)
+    genai.configure(api_key=GEMINI_KEY)
+    model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = f"""
     Write a punchy 25-second Instagram Reel script highlighting {NICHE}. 
     Focus on aesthetic unboxing, jewelry organization, display styling, or professional studio tools.
@@ -27,7 +28,7 @@ def generate_script():
         "caption": "Engaging Instagram caption with 5 relevant hashtags"
     }}
     """
-    response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+    response = model.generate_content(prompt)
     clean_json = response.text.strip().removeprefix("```json").removesuffix("```").strip()
     return json.loads(clean_json)
 

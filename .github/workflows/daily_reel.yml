@@ -1,0 +1,42 @@
+name: Auto Post Instagram Reel
+
+on:
+  schedule:
+    - cron: '30 13 * * *' # Runs daily at 7:00 PM IST (13:30 UTC)
+  workflow_dispatch:      # Lets you click "Run workflow" anytime to test!
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install -r requirements.txt
+          
+      - name: Generate, Post & Track Reel
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: python bot.py
+        
+      - name: Save Analytics Log to Repo
+        run: |
+          git config user.name "ReelBot"
+          git config user.email "bot@users.noreply.github.com"
+          git add analytics_log.json
+          git commit -m "Update Reel analytics log" || exit 0
+          git push
+          
